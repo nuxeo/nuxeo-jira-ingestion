@@ -1,0 +1,11 @@
+## Edit this file to customize your configuration ##
+#nuxeo-jira-ingestion.target=
+
+
+# Set list of templates to include, comma separated values.
+nuxeo.template.includes=common
+
+org.nuxeo.ecm.instance.description=Nuxeo ECM customized with nuxeo-jira-ingestion
+
+nuxeo.ai.poc.auth.relvon.token=
+nuxeo.ai.poc.auth.relvon.projectid=

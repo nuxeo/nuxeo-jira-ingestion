@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<component name="org.nuxeo.ecm.jira.ingestion.JiraComponent" version="1.0">
+    <extension point="operations" target="org.nuxeo.ecm.core.operation.OperationServiceComponent">
+        <operation class="org.nuxeo.ecm.jira.ingestion.automation.JiraIngestionOperation" />
+    </extension>
+
+</component>
