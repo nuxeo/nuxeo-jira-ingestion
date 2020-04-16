@@ -107,14 +107,17 @@ public class JiraIgestionWork extends AbstractWork {
         // update storyboard
         setStatus("Starting ingestion");
         Date currentStart = new Date(0);
-        String lastUpdated = "SELECT tc:updated FROM Ticket where " + NXQL.ECM_PARENTID + " = '" + docId + "'  order by tc:updated desc";
+        String lastUpdated = "SELECT tc:updated FROM Ticket where " + NXQL.ECM_PARENTID + " = '" + docId + "' AND " + NXQL.ECM_ISTRASHED + " = 0 and " + NXQL.ECM_ISPROXY + " = 0 order by tc:updated desc";
         try (IterableQueryResult res = session.queryAndFetch(lastUpdated, NXQL.NXQL)) {
             if(res.size() > 0){
                 Map<String,Serializable> item = res.iterator().next();
                 currentStart = ((Calendar)item.get("tc:updated")).getTime();
             } 
         }
-        
+        DocumentModel jiraDomain = session.getDocument(new IdRef(docId));
+        String jDUrl;
+        final String JiraUrl = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && !(jDUrl = (String) jiraDomain.getPropertyValue("jd:url")).isEmpty())?jDUrl:"https://jira.nuxeo.com";
+
         final Map<String, Serializable> properties = new HashMap<>();
         while (true) {
             
@@ -123,7 +126,7 @@ public class JiraIgestionWork extends AbstractWork {
             // get video blob
             final DocumentModel doc = session.getDocument(new IdRef(docId));
             final String pattern = "yyyy/MM/dd HH:mm";
-            final String ticketPerRequest = "333";
+            final String ticketPerRequest = "100";
             final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
             String date = simpleDateFormat.format(currentStart);
             try {
@@ -133,7 +136,7 @@ public class JiraIgestionWork extends AbstractWork {
                 e.printStackTrace();
             }
 
-            final String requestURL = "https://jira.nuxeo.com/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=updated+%3E+%22"
+            final String requestURL = JiraUrl + "/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=updated+%3E+%22"
             + date + "%22+ORDER+BY+updated+ASC&tempMax=" + ticketPerRequest;
 
             final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -249,6 +252,7 @@ public class JiraIgestionWork extends AbstractWork {
         } catch (final DocumentNotFoundException e) {
             ticket = session.createDocumentModel(doc.getPath().toString(), (String) properties.get("name"), "Ticket");
         }
+        properties.put("tc:issueKey", properties.get("name"));
         properties.remove("name");
         for (final Entry<String, Serializable> entry : properties.entrySet()) {
             ticket.getProperty(entry.getKey()).setValue(entry.getValue());
