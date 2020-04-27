@@ -22,30 +22,21 @@
   <repositories>
     <repository>
       <id>public</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
+      <url>https://packages.nuxeo.com/repository/maven-public</url>
       <releases>
         <enabled>true</enabled>
       </releases>
       <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-    <repository>
-      <id>public-snapshot</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
+        <enabled>true</enabled>
         <updatePolicy>always</updatePolicy>
-        <enabled>true</enabled>
       </snapshots>
     </repository>
     <repository>
-      <id>private-snapshots</id>
-      <url>https://mavenpriv.nuxeo.com/nexus/content/groups/private-snapshots</url>
+      <!-- match id in OCP settings.xml -->
+      <id>hotfix-releases</id>
+      <url>https://packages.nuxeo.com/repository/maven-private</url>
       <releases>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
       </releases>
       <snapshots>
         <enabled>true</enabled>
@@ -57,13 +48,13 @@
   <pluginRepositories>
     <pluginRepository>
       <id>public</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
-      <name>Nuxeo releases</name>
+      <url>https://packages.nuxeo.com/repository/maven-public</url>
       <releases>
         <enabled>true</enabled>
       </releases>
       <snapshots>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
       </snapshots>
     </pluginRepository>
   </pluginRepositories>
