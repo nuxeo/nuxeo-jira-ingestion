@@ -111,7 +111,9 @@ public class JiraIgestionWork extends AbstractWork {
         Date currentStart = new Date(0);
         log.debug("Jira started ");
         String lastUpdated = "SELECT tc:updated FROM Ticket where " + NXQL.ECM_PARENTID + " = '" + docId + "' AND " + NXQL.ECM_ISTRASHED + " = 0 and " + NXQL.ECM_ISPROXY + " = 0 order by tc:updated desc";
-        try (IterableQueryResult res = session.queryAndFetch(lastUpdated, NXQL.NXQL)) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("pageSize", 1);
+        try (IterableQueryResult res = session.queryAndFetch(lastUpdated, NXQL.NXQL,params)) {
             if(res.size() > 0){
                 Map<String,Serializable> item = res.iterator().next();
                 currentStart = ((Calendar)item.get("tc:updated")).getTime();
@@ -120,12 +122,12 @@ public class JiraIgestionWork extends AbstractWork {
         DocumentModel jiraDomain = session.getDocument(new IdRef(docId));
         String jDUrl,jDPage;
         final String JiraUrl = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:url") != null &&  !(jDUrl = (String) jiraDomain.getPropertyValue("jd:url")).isEmpty())?jDUrl:"https://jira.nuxeo.com";
-        final String JiraPage = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:page") != null &&  !(jDPage = (String) jiraDomain.getPropertyValue("jd:page")).isEmpty())?jDPage:"100";
+        final String JiraPage = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:page") != null &&  !(jDPage = ((Long) jiraDomain.getPropertyValue("jd:page")).toString()).isEmpty())?jDPage:"100";
         final Map<String, Serializable> properties = new HashMap<>();
         List<String> existingKeys = new ArrayList<String>();
         log.debug("Jira domain: " + JiraUrl);
         log.debug("Jira Page Size: " + JiraPage);
-        
+        String requestURL= "";
         while (true) {
             
             
@@ -149,9 +151,14 @@ public class JiraIgestionWork extends AbstractWork {
                 return;
             }
             
-            final String requestURL = JiraUrl + "/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=updated+%3E+%22"
+            String newRequestURL = JiraUrl + "/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=updated+%3E+%22"
             + dateEnc + "%22+" + removeKeyClause + "+ORDER+BY+updated+ASC&tempMax=" + JiraPage;
-
+            if(newRequestURL.compareTo(requestURL) == 0) {
+                return;
+            } else {
+                requestURL = newRequestURL;
+            }
+            
             log.debug("Jira request: " + requestURL);
 
             final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
