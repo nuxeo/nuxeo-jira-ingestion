@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.nuxeo.ecm.automation.core.Constants;
 import org.nuxeo.ecm.automation.core.annotations.Context;
 import org.nuxeo.ecm.automation.core.annotations.Operation;
@@ -21,7 +23,7 @@ import org.nuxeo.runtime.api.Framework;
 public class JiraIngestionOperation {
 
     public static final String ID = "Jira.UpdateFromJira";
-    private static final Log log = LogFactory.getLog(JiraIgestionWork.class);
+    private static final Logger log = LogManager.getLogger(JiraIgestionWork.class);
     
     @Context
     public CoreSession coreSession;
@@ -33,7 +35,7 @@ public class JiraIngestionOperation {
     public DocumentModel run(final DocumentModel doc) {
         WorkManager workManager = Framework.getService(WorkManager.class);
         JiraIgestionWork work = new JiraIgestionWork(doc.getRepositoryName(), doc.getId());
-        log.debug(String.format("Scheduling work: storyboard of Video document %s.", doc));
+        log.error(String.format("Scheduling work: storyboard of Video document %s.", doc));
         workManager.schedule(work, true);
         return null;
     }

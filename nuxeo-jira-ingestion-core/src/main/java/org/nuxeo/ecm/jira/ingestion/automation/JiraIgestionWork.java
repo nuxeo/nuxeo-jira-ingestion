@@ -25,6 +25,8 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.DocumentNotFoundException;
@@ -46,7 +48,7 @@ public class JiraIgestionWork extends AbstractWork {
      */
     private static final long serialVersionUID = 124L;
 
-    private static final Log log = LogFactory.getLog(JiraIgestionWork.class);
+    private static final Logger log = LogManager.getLogger(JiraIgestionWork.class);
 
     public static final String CATEGORY = "jiraIngestion";
 
@@ -107,6 +109,7 @@ public class JiraIgestionWork extends AbstractWork {
         // update storyboard
         setStatus("Starting ingestion");
         Date currentStart = new Date(0);
+        log.debug("Jira started ");
         String lastUpdated = "SELECT tc:updated FROM Ticket where " + NXQL.ECM_PARENTID + " = '" + docId + "' AND " + NXQL.ECM_ISTRASHED + " = 0 and " + NXQL.ECM_ISPROXY + " = 0 order by tc:updated desc";
         try (IterableQueryResult res = session.queryAndFetch(lastUpdated, NXQL.NXQL)) {
             if(res.size() > 0){
@@ -115,10 +118,14 @@ public class JiraIgestionWork extends AbstractWork {
             } 
         }
         DocumentModel jiraDomain = session.getDocument(new IdRef(docId));
-        String jDUrl;
-        final String JiraUrl = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && !(jDUrl = (String) jiraDomain.getPropertyValue("jd:url")).isEmpty())?jDUrl:"https://jira.nuxeo.com";
-
+        String jDUrl,jDPage;
+        final String JiraUrl = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:url") != null &&  !(jDUrl = (String) jiraDomain.getPropertyValue("jd:url")).isEmpty())?jDUrl:"https://jira.nuxeo.com";
+        final String JiraPage = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:page") != null &&  !(jDPage = (String) jiraDomain.getPropertyValue("jd:page")).isEmpty())?jDPage:"100";
         final Map<String, Serializable> properties = new HashMap<>();
+        List<String> existingKeys = new ArrayList<String>();
+        log.debug("Jira domain: " + JiraUrl);
+        log.debug("Jira Page Size: " + JiraPage);
+        
         while (true) {
             
             
@@ -126,18 +133,26 @@ public class JiraIgestionWork extends AbstractWork {
             // get video blob
             final DocumentModel doc = session.getDocument(new IdRef(docId));
             final String pattern = "yyyy/MM/dd HH:mm";
-            final String ticketPerRequest = "100";
             final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
             String date = simpleDateFormat.format(currentStart);
+            String dateEnc = "";
+            String removeKeyClause = "";
+            log.debug("Jira date: " + date);
             try {
-                date = URLEncoder.encode(date, StandardCharsets.UTF_8.toString());
+                dateEnc = URLEncoder.encode(date, StandardCharsets.UTF_8.toString());
+                if(existingKeys.size() > 0){
+                    removeKeyClause = URLEncoder.encode("and issuekey not in  (" + String.join(",", existingKeys), StandardCharsets.UTF_8.toString()) + ")";
+                }
             } catch (final UnsupportedEncodingException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
+                return;
             }
-
+            
             final String requestURL = JiraUrl + "/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=updated+%3E+%22"
-            + date + "%22+ORDER+BY+updated+ASC&tempMax=" + ticketPerRequest;
+            + dateEnc + "%22+" + removeKeyClause + "+ORDER+BY+updated+ASC&tempMax=" + JiraPage;
+
+            log.debug("Jira request: " + requestURL);
 
             final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder;
@@ -149,6 +164,8 @@ public class JiraIgestionWork extends AbstractWork {
                 items = document.getElementsByTagName("item");
                 if(items.getLength() == 0){
                     setStatus("Done");
+                    log.debug("Jira done!");
+
                     try{
                         commitOrRollbackTransaction();
                     } finally {
@@ -209,6 +226,13 @@ public class JiraIgestionWork extends AbstractWork {
                         if(properties.containsKey("tc:updated") && properties.get("tc:updated") != null){
                             setStatus("On update: " + properties.get("tc:updated").toString());
                             currentStart = (Date) properties.get("tc:updated");
+                            if(date.compareTo(simpleDateFormat.format(currentStart)) == 0 ) {
+                                existingKeys.add('"' + ((String) properties.get("name")) + '"');
+                            } else {
+                                existingKeys.clear();
+                            }
+                            log.debug("Jira updated latest date: " + currentStart.toString());
+
                         }
                         this.CreateOrUpdateDoc(doc, properties);
                     }
@@ -242,17 +266,19 @@ public class JiraIgestionWork extends AbstractWork {
 
     protected boolean CreateOrUpdateDoc(final DocumentModel doc, final Map<String, Serializable> properties) {
         final boolean created = false;
-        final PathRef path = new PathRef(doc.getPath().toString() + File.separator + properties.get("name"));
+        final String key = (String) properties.get("name");
+        final PathRef path = new PathRef(doc.getPath().toString() + File.separator + key);
         final CoreSession session = doc.getCoreSession();
+        
         DocumentModel ticket;
         boolean exist = false;
         try {
             ticket = session.getDocument(path);
             exist = true;
         } catch (final DocumentNotFoundException e) {
-            ticket = session.createDocumentModel(doc.getPath().toString(), (String) properties.get("name"), "Ticket");
+            ticket = session.createDocumentModel(doc.getPath().toString(), key, "Ticket");
         }
-        properties.put("tc:issueKey", properties.get("name"));
+        properties.put("tc:issueKey", key);
         properties.remove("name");
         for (final Entry<String, Serializable> entry : properties.entrySet()) {
             ticket.getProperty(entry.getKey()).setValue(entry.getValue());
@@ -260,8 +286,10 @@ public class JiraIgestionWork extends AbstractWork {
 
         if (exist) {
             session.saveDocument(ticket);
+            log.debug("Jira update: " + key);
         } else {
             session.createDocument(ticket);
+            log.debug("Jira create: " + key);
         }
         session.save();
 
