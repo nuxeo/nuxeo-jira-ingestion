@@ -191,7 +191,7 @@ public class JiraIgestionWork extends AbstractWork {
 
                                 value = nodes.item(0).getTextContent();
                                 if (v[2] != null && value != null && !((String) value).isEmpty()) {
-                                    final SimpleDateFormat df = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss Z");
+                                    final SimpleDateFormat df = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z");
                                     try {
                                         value = df.parse((String) value);
                                     } catch (final ParseException e) {
