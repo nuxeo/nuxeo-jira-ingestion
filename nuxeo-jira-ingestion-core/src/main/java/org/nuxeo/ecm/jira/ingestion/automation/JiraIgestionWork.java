@@ -23,8 +23,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.nuxeo.ecm.core.api.CoreSession;
@@ -124,11 +122,12 @@ public class JiraIgestionWork extends AbstractWork {
         final String JiraUrl = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:url") != null &&  !(jDUrl = (String) jiraDomain.getPropertyValue("jd:url")).isEmpty())?jDUrl:"https://jira.nuxeo.com";
         final String JiraPage = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:page") != null &&  !(jDPage = ((Long) jiraDomain.getPropertyValue("jd:page")).toString()).isEmpty())?jDPage:"100";
         final Map<String, Serializable> properties = new HashMap<>();
+        Long MaxTickets = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:max") != null &&  (MaxTickets = (Long) jiraDomain.getPropertyValue("jd:max")) > 0)?MaxTickets:10000000L;
         List<String> existingKeys = new ArrayList<String>();
         log.debug("Jira domain: " + JiraUrl);
         log.debug("Jira Page Size: " + JiraPage);
         String requestURL= "";
-        while (true) {
+        while (MaxTickets-- > 0) {
             
             
 
