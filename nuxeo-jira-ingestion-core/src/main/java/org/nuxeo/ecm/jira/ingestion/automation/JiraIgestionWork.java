@@ -33,6 +33,10 @@ import org.nuxeo.ecm.core.api.IterableQueryResult;
 import org.nuxeo.ecm.core.api.PathRef;
 import org.nuxeo.ecm.core.query.sql.NXQL;
 import org.nuxeo.ecm.core.work.AbstractWork;
+import org.nuxeo.ecm.platform.query.api.PageProvider;
+import org.nuxeo.ecm.platform.query.api.PageProviderService;
+import org.nuxeo.ecm.platform.query.nxql.CoreQueryDocumentPageProvider;
+import org.nuxeo.runtime.api.Framework;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -79,7 +83,7 @@ public class JiraIgestionWork extends AbstractWork {
     }
 
     public JiraIgestionWork(final String repositoryName, final String docId) {
-        super(repositoryName + ':' + docId + ":" + CATEGORY +":");
+        super(repositoryName + ':' + docId + ":" + CATEGORY + ":");
         setDocument(repositoryName, docId);
     }
 
@@ -103,61 +107,69 @@ public class JiraIgestionWork extends AbstractWork {
         setProgress(Progress.PROGRESS_INDETERMINATE);
         openSystemSession();
 
-
         // update storyboard
         setStatus("Starting ingestion");
         Date currentStart = new Date(0);
         log.debug("Jira started ");
-        String lastUpdated = "SELECT tc:updated FROM Ticket where " + NXQL.ECM_PARENTID + " = '" + docId + "' AND " + NXQL.ECM_ISTRASHED + " = 0 and " + NXQL.ECM_ISPROXY + " = 0 order by tc:updated desc";
-        Map<String, Object> params = new HashMap<>();
-        params.put("pageSize", 1);
-        try (IterableQueryResult res = session.queryAndFetch(lastUpdated, NXQL.NXQL,params)) {
-            if(res.size() > 0){
-                Map<String,Serializable> item = res.iterator().next();
-                currentStart = ((Calendar)item.get("tc:updated")).getTime();
-            } 
+
+        final PageProviderService ppService = Framework.getService(PageProviderService.class);
+        final Map<String, Serializable> props = new HashMap<>();
+        props.put(CoreQueryDocumentPageProvider.CORE_SESSION_PROPERTY, (Serializable) session);
+        final PageProvider<DocumentModel> pp = (PageProvider<DocumentModel>) ppService.getPageProvider("jira_pp", null,
+                null, null, props, new Object[] { this.docId });
+        final List<DocumentModel> documents = pp.getCurrentPage();
+        if (documents.size() > 0) {
+            currentStart = ((Calendar) documents.get(0).getPropertyValue("tc:updated")).getTime();
         }
-        DocumentModel jiraDomain = session.getDocument(new IdRef(docId));
-        String jDUrl,jDPage;
-        final String JiraUrl = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:url") != null &&  !(jDUrl = (String) jiraDomain.getPropertyValue("jd:url")).isEmpty())?jDUrl:"https://jira.nuxeo.com";
-        final String JiraPage = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:page") != null &&  !(jDPage = ((Long) jiraDomain.getPropertyValue("jd:page")).toString()).isEmpty())?jDPage:"100";
+        
+        final DocumentModel jiraDomain = session.getDocument(this.getDocument().getIdRef());
+        String jDUrl, jDPage;
+        final String JiraUrl = ("JiraDomain".compareTo(jiraDomain.getType()) == 0
+                && jiraDomain.getPropertyValue("jd:url") != null
+                && !(jDUrl = (String) jiraDomain.getPropertyValue("jd:url")).isEmpty()) ? jDUrl
+                        : "https://jira.nuxeo.com";
+        final String JiraPage = ("JiraDomain".compareTo(jiraDomain.getType()) == 0
+                && jiraDomain.getPropertyValue("jd:page") != null
+                && !(jDPage = ((Long) jiraDomain.getPropertyValue("jd:page")).toString()).isEmpty()) ? jDPage : "100";
         final Map<String, Serializable> properties = new HashMap<>();
-        Long MaxTickets = ("JiraDomain".compareTo(jiraDomain.getType()) == 0 && jiraDomain.getPropertyValue("jd:max") != null &&  (MaxTickets = (Long) jiraDomain.getPropertyValue("jd:max")) > 0)?MaxTickets:10000000L;
-        List<String> existingKeys = new ArrayList<String>();
+        Long MaxTickets = ("JiraDomain".compareTo(jiraDomain.getType()) == 0
+                && jiraDomain.getPropertyValue("jd:max") != null
+                && (MaxTickets = (Long) jiraDomain.getPropertyValue("jd:max")) > 0) ? MaxTickets : 10000000L;
+        final List<String> existingKeys = new ArrayList<String>();
         log.debug("Jira domain: " + JiraUrl);
         log.debug("Jira Page Size: " + JiraPage);
-        String requestURL= "";
+        String requestURL = "";
+        // get jira domain
+        final DocumentModel doc = session.getDocument(new IdRef(this.docId));
         while (MaxTickets-- > 0) {
-            
-            
 
-            // get video blob
-            final DocumentModel doc = session.getDocument(new IdRef(docId));
             final String pattern = "yyyy/MM/dd HH:mm";
             final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-            String date = simpleDateFormat.format(currentStart);
+            final String date = simpleDateFormat.format(currentStart);
             String dateEnc = "";
             String removeKeyClause = "";
             log.debug("Jira date: " + date);
             try {
                 dateEnc = URLEncoder.encode(date, StandardCharsets.UTF_8.toString());
-                if(existingKeys.size() > 0){
-                    removeKeyClause = URLEncoder.encode("and issuekey not in  (" + String.join(",", existingKeys), StandardCharsets.UTF_8.toString()) + ")";
+                if (existingKeys.size() > 0) {
+                    removeKeyClause = URLEncoder.encode("and issuekey not in  (" + String.join(",", existingKeys),
+                            StandardCharsets.UTF_8.toString()) + ")";
                 }
             } catch (final UnsupportedEncodingException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
                 return;
             }
-            
-            String newRequestURL = JiraUrl + "/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=updated+%3E+%22"
-            + dateEnc + "%22+" + removeKeyClause + "+ORDER+BY+updated+ASC&tempMax=" + JiraPage;
-            if(newRequestURL.compareTo(requestURL) == 0) {
+
+            final String newRequestURL = JiraUrl
+                    + "/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=updated+%3E+%22" + dateEnc
+                    + "%22+" + removeKeyClause + "+ORDER+BY+updated+ASC&tempMax=" + JiraPage;
+            if (newRequestURL.compareTo(requestURL) == 0) {
                 return;
             } else {
                 requestURL = newRequestURL;
             }
-            
+
             log.debug("Jira request: " + requestURL);
 
             final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -168,11 +180,11 @@ public class JiraIgestionWork extends AbstractWork {
                 final Document document = builder.parse(new URL(requestURL).openStream());
                 document.getDocumentElement();
                 items = document.getElementsByTagName("item");
-                if(items.getLength() == 0){
+                if (items.getLength() == 0) {
                     setStatus("Done");
                     log.debug("Jira done!");
 
-                    try{
+                    try {
                         commitOrRollbackTransaction();
                     } finally {
                         cleanUp(true, null);
@@ -180,7 +192,7 @@ public class JiraIgestionWork extends AbstractWork {
                     return;
                 }
                 for (int i = 0; i < items.getLength(); i++) {
-                    
+
                     final Node item = items.item(i);
                     if (item.getNodeType() == Node.ELEMENT_NODE) {
                         final Element elem = (Element) item;
@@ -193,7 +205,7 @@ public class JiraIgestionWork extends AbstractWork {
                                     values.add(nodes.item(j).getTextContent());
                                 }
                                 value = (java.io.Serializable) values;
-                            } else if(nodes.getLength() > 0){
+                            } else if (nodes.getLength() > 0) {
 
                                 value = nodes.item(0).getTextContent();
                                 if (v[2] != null && value != null && !((String) value).isEmpty()) {
@@ -229,10 +241,10 @@ public class JiraIgestionWork extends AbstractWork {
                                 }
                             }
                         }
-                        if(properties.containsKey("tc:updated") && properties.get("tc:updated") != null){
+                        if (properties.containsKey("tc:updated") && properties.get("tc:updated") != null) {
                             setStatus("On update: " + properties.get("tc:updated").toString());
                             currentStart = (Date) properties.get("tc:updated");
-                            if(date.compareTo(simpleDateFormat.format(currentStart)) == 0 ) {
+                            if (date.compareTo(simpleDateFormat.format(currentStart)) == 0) {
                                 existingKeys.add('"' + ((String) properties.get("name")) + '"');
                             } else {
                                 existingKeys.clear();
@@ -247,26 +259,19 @@ public class JiraIgestionWork extends AbstractWork {
 
                 commitOrRollbackTransaction();
                 startTransaction();
-            
 
             } catch (final ParserConfigurationException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             } catch (final MalformedURLException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             } catch (final SAXException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             } catch (final IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
-            } 
-            
+            }
+
         }
-
-
-        
 
     }
 
@@ -275,7 +280,7 @@ public class JiraIgestionWork extends AbstractWork {
         final String key = (String) properties.get("name");
         final PathRef path = new PathRef(doc.getPath().toString() + File.separator + key);
         final CoreSession session = doc.getCoreSession();
-        
+
         DocumentModel ticket;
         boolean exist = false;
         try {

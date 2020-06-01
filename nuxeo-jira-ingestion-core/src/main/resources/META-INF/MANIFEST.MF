@@ -6,4 +6,4 @@ Bundle-Version: 1.0.0
 Bundle-Name: nuxeo-jira-ingestion-core
 Bundle-ManifestVersion: 2
 Bundle-SymbolicName: org.nuxeo.ecm.jira.ingestion.nuxeo-jira-ingestion-core;singleton=true
-Nuxeo-Component: OSGI-INF/jira-contrib.xml
+Nuxeo-Component: OSGI-INF/jira-contrib.xml,OSGI-INF/jira-pageprovider-contrib.xml
