@@ -21,7 +21,8 @@
       <fileset dir="src/main/resources"/>
       <filterset>
         <filter token="VERSION" value="${maven.project.version}"/>
-        <filter token="DISTRIB_VERSION" value="${nuxeo.distribution.version}"/>
+        <filter token="NUXEO_PLATFORM_VERSION" value="${nuxeo.platform.version}" />
+        <filter token="NUXEO_TARGET_VERSION" value="${nuxeo.target.version}" />
       </filterset>
     </copy>
     <copy file="${outdir}/nuxeo-jira-ingestion-artifacts.properties" todir="${outdir}/marketplace/install"/>
@@ -73,13 +74,13 @@
 
     <!-- Your MP only needs to include files not already provided by the base distribution -->
     <nx:zipdiff
-      file1="${outdir}/nxr-${maven.project.version}.zip"
-      file2="${outdir}/nuxeo-nxr-server-${nuxeo.distribution.version}.zip"
-      includesfile="${outdir}/includes"
-      excludesfile="${outdir}/excludesfile"
-      patternsetid="nxr.versus.distribution"
-      ignoreContent="false"
-      ignoreContentPattern=".*\.jar$"></nx:zipdiff>
+            file1="${outdir}/nxr-${maven.project.version}.zip"
+            file2="${outdir}/nuxeo-nxr-server-${nuxeo.platform.version}.zip"
+            includesfile="${outdir}/includes"
+            excludesfile="${outdir}/excludesfile"
+            patternsetid="nxr.versus.distribution"
+            ignoreContent="false"
+            ignoreContentPattern=".*\.jar$"></nx:zipdiff>
     <unzip src="${outdir}/nxr-${maven.project.version}.zip" dest="${outdir}/marketplace/install">
       <patternset refid="nxr.versus.distribution"/>
     </unzip>
