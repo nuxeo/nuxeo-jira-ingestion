@@ -27,22 +27,10 @@ pipeline {
     stages {
         stage('Init') {
             steps {
-                script {
-                    VERSION = jx.getBranchVersion()
-                    setGitHubBuildStatus('init')
-                    setGitHubBuildStatus('maven/build')
-                    if (!env.TAG_NAME) {
-                        setGitHubBuildStatus('maven/test')
-                    }
-                    if (env.TAG_NAME || jx.isLongLivingBranch()) {
-                        setGitHubBuildStatus('maven/deploy')
-                        setGitHubBuildStatus('package/push')
-                    }
-                }
                 container('nuxeo1010') {
-                    sh "kubectl label pods ${NODE_NAME} branch=${BRANCH_NAME}"
-                    setGitCredentials()
-                    echo "VERSION: $VERSION"
+                    script {
+                        stepsInit()
+                    }
                 }
             }
             post {
@@ -54,8 +42,9 @@ pipeline {
         stage('Maven Build') {
             steps {
                 container('nuxeo1010') {
-                    sh "mvn clean install ${jx.getMavenArgs(true)}"
-                    stash name: 'packages', includes: PACKAGE_PATTERN.replaceAll(' ', ','), allowEmpty: false
+                    script {
+                        stepsMaven.build()
+                    }
                 }
             }
             post {
@@ -72,7 +61,9 @@ pipeline {
             }
             steps {
                 container('nuxeo1010') {
-                    sh "mvn test --fail-never -nsu ${jx.getMavenArgs()}"
+                    script {
+                        stepsMaven.test()
+                    }
                 }
             }
             post {
@@ -98,8 +89,9 @@ pipeline {
             }
             steps {
                 container('nuxeo1010') {
-                    sh "mvn deploy ${jx.getMavenArgs(true, true)}"
-                    stash name: 'packages', includes: PACKAGE_PATTERN, allowEmpty: false
+                    script {
+                        stepsMaven.deploy()
+                    }
                 }
             }
             post {
@@ -119,7 +111,9 @@ pipeline {
             }
             steps {
                 container('nuxeo1010') {
-                    uploadPackages('connect-nuxeo-ai-jx-bot', 'connect-preprod')
+                    script {
+                        uploadPackages('connect-nuxeo-ai-jx-bot', 'connect-preprod')
+                    }
                 }
             }
             post {
@@ -133,11 +127,9 @@ pipeline {
                 tag '*'
             }
             steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    container('nuxeo1010') {
-                        sh """#!/bin/bash -xe
-jx step create pr regex --regex 'version: (.*)' --version $VERSION --files packages/nuxeo-jira-ingestion.yml -r https://github.com/nuxeo/jx-ai-versions
-"""
+                container('nuxeo1010') {
+                    script {
+                        jx.upgradeVersionStream('packages/nuxeo-jira-ingestion.yml')
                     }
                 }
             }
