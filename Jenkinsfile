@@ -7,6 +7,8 @@
  *     Julien Carsique <jcarsique@nuxeo.com>
  */
 
+@Library('nxAILibUntrusted@feat-INSIGHT-988-pipelineLib') _
+
 pipeline {
     agent {
         label "jenkins-ai-nuxeo1010"
@@ -25,11 +27,6 @@ pipeline {
     stages {
         stage('Init') {
             steps {
-//                library "nxAILib@$feat-INSIGHT-988-pipelineLib"
-                library identifier: 'nxAILib@feat-INSIGHT-988-pipelineLib', retriever: modernSCM(
-                        [$class       : 'GitSCMSource',
-                         credentialsId: 'jx-pipeline-git-github-github',
-                         remote       : 'https://github.com/nuxeo/nuxeo-ai-tools.git'])
                 script {
                     VERSION = jx.getBranchVersion()
                     setGitHubBuildStatus('init')
