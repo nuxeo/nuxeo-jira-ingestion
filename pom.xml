@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.nuxeo.ecm.distribution</groupId>
@@ -9,54 +10,20 @@
 
   <groupId>org.nuxeo.ecm.jira.ingestion</groupId>
   <artifactId>nuxeo-jira-ingestion-parent</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <name>Nuxeo jira ingestion parent</name>
-  <description />
+  <description/>
   <packaging>pom</packaging>
+
+  <properties>
+    <nuxeo.ai.version>2.5.3</nuxeo.ai.version>
+  </properties>
 
   <modules>
     <module>nuxeo-jira-ingestion-core</module>
     <module>nuxeo-jira-ingestion-package</module>
   </modules>
 
-  <repositories>
-    <repository>
-      <id>public</id>
-      <url>https://packages.nuxeo.com/repository/maven-public</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </snapshots>
-    </repository>
-    <repository>
-      <id>maven-private</id>
-      <url>https://packages.nuxeo.com/repository/maven-private</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </snapshots>
-    </repository>
-  </repositories>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <id>public</id>
-      <url>https://packages.nuxeo.com/repository/maven-public</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </snapshots>
-    </pluginRepository>
-  </pluginRepositories>
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -74,6 +41,137 @@
         <artifactId>nuxeo-jira-ingestion-package</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ai</groupId>
+        <artifactId>ai-core-parent</artifactId>
+        <version>${nuxeo.ai.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.nuxeo.ai</groupId>
+        <artifactId>nuxeo-ai-aws-core</artifactId>
+        <version>${nuxeo.ai.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-help-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <repositories>
+    <repository>
+      <id>maven-public</id>
+      <url>https://packages.nuxeo.com/repository/maven-public</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <updatePolicy>always</updatePolicy>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+
+    <!-- Deactivate unwanted inherited repositories -->
+    <repository>
+      <id>internal-releases</id>
+      <url>https://mavenin.nuxeo.com/nexus/content/groups/internal-releases</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>internal-snapshots</id>
+      <url>https://mavenin.nuxeo.com/nexus/content/groups/internal-snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>hotfix-releases</id>
+      <url>https://maven.nuxeo.org/nexus/content/repositories/hotfix-releases</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>hotfix-snapshots</id>
+      <url>https://maven.nuxeo.org/nexus/content/repositories/hotfix-snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>public</id>
+      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>public-snapshot</id>
+      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>central</id>
+      <url>https://repo.maven.apache.org/maven2</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>maven-public</id>
+      <url>https://packages.nuxeo.com/repository/maven-public</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </snapshots>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <scm>
+    <connection>scm:git:git://github.com/nuxeo/nuxeo-jira-ingestion.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com:nuxeo/nuxeo-jira-ingestion.git</developerConnection>
+    <url>https://github.com/nuxeo/nuxeo-jira-ingestion</url>
+  </scm>
+
 </project>
