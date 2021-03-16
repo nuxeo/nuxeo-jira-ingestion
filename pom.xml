@@ -168,6 +168,18 @@
     </pluginRepository>
   </pluginRepositories>
 
+  <distributionManagement>
+    <repository>
+      <id>maven-public-releases</id>
+      <url>https://packages.nuxeo.com/repository/maven-public-releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>maven-public-snapshots</id>
+      <url>https://packages.nuxeo.com/repository/maven-public-snapshots/</url>
+      <uniqueVersion>true</uniqueVersion>
+    </snapshotRepository>
+  </distributionManagement>
+
   <scm>
     <connection>scm:git:git://github.com/nuxeo/nuxeo-jira-ingestion.git</connection>
     <developerConnection>scm:git:ssh://git@github.com:nuxeo/nuxeo-jira-ingestion.git</developerConnection>
