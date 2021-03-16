@@ -7,7 +7,7 @@
  *     Julien Carsique <jcarsique@nuxeo.com>
  */
 
-@Library('nxAILibUntrusted@feat-INSIGHT-988-pipelineLib') _
+@Library('nxAILibUntrusted') _
 
 pipelineMaven('jenkins-ai-nuxeo1010', 'nuxeo1010',
         'nuxeo-jira-ingestion-package/target/nuxeo-jira-ingestion-package-*.zip', 'packages/nuxeo-jira-ingestion.yml')
