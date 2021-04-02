@@ -21,7 +21,7 @@
   </platforms>
   <!-- Dependencies on other packages -->
   <dependencies>
-    <package>nuxeo-jira-ai</package> 
+    <package>nuxeo-insight-demos</package> 
   <!-- If you require JSF UI package:  -->
   <!-- <package>nuxeo-jsf-ui</package> -->
   <!-- If you require WEB UI package:  -->
